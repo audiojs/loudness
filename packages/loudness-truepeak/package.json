@@ -1,0 +1,19 @@
+{
+  "name": "@audio/loudness-truepeak",
+  "version": "0.0.0",
+  "description": "True peak — 4×-oversampled inter-sample peak, dBTP",
+  "type": "module",
+  "sideEffects": false,
+  "private": true,
+  "keywords": [
+    "audio",
+    "dsp",
+    "loudness",
+    "truepeak"
+  ],
+  "license": "MIT",
+  "author": "Dmitry Iv. <dfcreative@gmail.com>",
+  "engines": {
+    "node": ">=18"
+  }
+}

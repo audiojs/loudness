@@ -1,0 +1,19 @@
+{
+  "name": "@audio/loudness-dr",
+  "version": "0.0.0",
+  "description": "DR value — crest-factor dynamic range meter",
+  "type": "module",
+  "sideEffects": false,
+  "private": true,
+  "keywords": [
+    "audio",
+    "dsp",
+    "loudness",
+    "dr"
+  ],
+  "license": "MIT",
+  "author": "Dmitry Iv. <dfcreative@gmail.com>",
+  "engines": {
+    "node": ">=18"
+  }
+}

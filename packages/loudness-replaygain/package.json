@@ -1,0 +1,19 @@
+{
+  "name": "@audio/loudness-replaygain",
+  "version": "0.0.0",
+  "description": "ReplayGain 2.0 loudness values",
+  "type": "module",
+  "sideEffects": false,
+  "private": true,
+  "keywords": [
+    "audio",
+    "dsp",
+    "loudness",
+    "replaygain"
+  ],
+  "license": "MIT",
+  "author": "Dmitry Iv. <dfcreative@gmail.com>",
+  "engines": {
+    "node": ">=18"
+  }
+}

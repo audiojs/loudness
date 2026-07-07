@@ -1,0 +1,19 @@
+{
+  "name": "@audio/loudness-lra",
+  "version": "0.0.0",
+  "description": "Loudness range (LRA) — EBU Tech 3341/3342",
+  "type": "module",
+  "sideEffects": false,
+  "private": true,
+  "keywords": [
+    "audio",
+    "dsp",
+    "loudness",
+    "lra"
+  ],
+  "license": "MIT",
+  "author": "Dmitry Iv. <dfcreative@gmail.com>",
+  "engines": {
+    "node": ">=18"
+  }
+}
