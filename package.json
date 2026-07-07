@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "sideEffects": false,
   "description": "Loudness metering — umbrella for @audio/loudness-* atoms (BS.1770-4 LUFS, true peak, LRA, ReplayGain, DR)",
@@ -35,7 +35,11 @@
     "publish:all": "npm publish --workspaces && npm publish"
   },
   "dependencies": {
-    "@audio/loudness-lufs": "^1.0.0"
+    "@audio/loudness-lufs": "^1.0.0",
+    "@audio/loudness-truepeak": "^1.0.0",
+    "@audio/loudness-lra": "^1.0.0",
+    "@audio/loudness-replaygain": "^1.0.0",
+    "@audio/loudness-dr": "^1.0.0"
   },
   "devDependencies": {
     "tst": "^9.4.0"

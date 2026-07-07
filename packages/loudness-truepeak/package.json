@@ -1,10 +1,20 @@
 {
   "name": "@audio/loudness-truepeak",
-  "version": "0.0.0",
-  "description": "True peak — 4×-oversampled inter-sample peak, dBTP",
+  "version": "1.0.0",
+  "description": "True peak (dBTP) — 4× sinc-oversampled inter-sample peak (BS.1770-4 Annex 2 methodology)",
   "type": "module",
   "sideEffects": false,
-  "private": true,
+  "main": "truepeak.js",
+  "exports": {
+    ".": "./truepeak.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "truepeak.js"
+  ],
+  "dependencies": {
+    "@audio/resample-sinc": "file:../../../resample/packages/resample-sinc"
+  },
   "keywords": [
     "audio",
     "dsp",
@@ -15,5 +25,8 @@
   "author": "Dmitry Iv. <dfcreative@gmail.com>",
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

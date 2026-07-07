@@ -1,10 +1,20 @@
 {
   "name": "@audio/loudness-lra",
-  "version": "0.0.0",
-  "description": "Loudness range (LRA) — EBU Tech 3341/3342",
+  "version": "1.0.0",
+  "description": "Loudness range (LRA) — EBU Tech 3342 short-term distribution, P95−P10 after gating",
   "type": "module",
   "sideEffects": false,
-  "private": true,
+  "main": "lra.js",
+  "exports": {
+    ".": "./lra.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lra.js"
+  ],
+  "dependencies": {
+    "@audio/weighting-k": "file:../../../weighting/packages/weighting-k"
+  },
   "keywords": [
     "audio",
     "dsp",
@@ -15,5 +25,8 @@
   "author": "Dmitry Iv. <dfcreative@gmail.com>",
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
