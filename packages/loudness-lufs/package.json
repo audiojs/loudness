@@ -1,19 +1,34 @@
 {
   "name": "@audio/loudness-lufs",
-  "version": "0.0.0",
-  "description": "Integrated / momentary / short-term loudness — ITU-R BS.1770-4 gated blocks (K-weighted)",
+  "version": "1.0.0",
+  "description": "Integrated loudness (LUFS) — ITU-R BS.1770-4 K-weighted gated measurement, EBU Tech 3341-verified",
   "type": "module",
   "sideEffects": false,
-  "private": true,
+  "main": "lufs.js",
+  "exports": {
+    ".": "./lufs.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lufs.js"
+  ],
+  "dependencies": {
+    "@audio/weighting-k": "file:../../../weighting/packages/weighting-k"
+  },
   "keywords": [
     "audio",
     "dsp",
     "loudness",
-    "lufs"
+    "lufs",
+    "bs1770",
+    "ebu-r128"
   ],
   "license": "MIT",
   "author": "Dmitry Iv. <dfcreative@gmail.com>",
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

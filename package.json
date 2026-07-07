@@ -1,10 +1,9 @@
 {
   "name": "@audio/loudness",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "sideEffects": false,
   "description": "Loudness metering — umbrella for @audio/loudness-* atoms (BS.1770-4 LUFS, true peak, LRA, ReplayGain, DR)",
-  "private": true,
   "workspaces": [
     "packages/*"
   ],
@@ -21,5 +20,27 @@
   "author": "Dmitry Iv. <dfcreative@gmail.com>",
   "engines": {
     "node": ">=18"
+  },
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "node test.js",
+    "test:all": "npm test --workspaces --if-present && npm test",
+    "publish:all": "npm publish --workspaces && npm publish"
+  },
+  "dependencies": {
+    "@audio/loudness-lufs": "^1.0.0"
+  },
+  "devDependencies": {
+    "tst": "^9.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
