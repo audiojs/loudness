@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-lra",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Loudness range (LRA) — EBU Tech 3342 short-term distribution, P95−P10 after gating",
   "type": "module",
   "sideEffects": false,
@@ -13,7 +13,7 @@
     "lra.js"
   ],
   "dependencies": {
-    "@audio/weighting-k": "file:../../../weighting/packages/weighting-k"
+    "@audio/weighting-k": "^1.0.0"
   },
   "keywords": [
     "audio",
