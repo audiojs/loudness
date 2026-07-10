@@ -35,5 +35,10 @@
   "publishConfig": {
     "access": "public"
   },
-  "audio": "./audio.js"
+  "audio": "./audio.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/loudness.git",
+    "directory": "packages/loudness-lra"
+  }
 }
