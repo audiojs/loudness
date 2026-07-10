@@ -2,9 +2,10 @@
 // Whole-signal analysis: the host reads the (ranged) PCM and calls compute once —
 // the (channels, { fs }) batch shape the kernel already is.
 
-import speechContrast from './contrast.js'
+import speechContrastFn from './contrast.js'
 
-export const contrast = {
+// named speechContrast (not `contrast`) — the spectral-contrast manifest already exports that identifier
+export const speechContrast = {
 	stat: 'speech-contrast',
-	compute: (channels, { sampleRate, ...opts }) => speechContrast(channels, { fs: sampleRate, ...opts }),
+	compute: (channels, { sampleRate, ...opts }) => speechContrastFn(channels, { fs: sampleRate, ...opts }),
 }
