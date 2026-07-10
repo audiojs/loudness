@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-lra",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Loudness range (LRA) — EBU Tech 3342 short-term distribution, P95−P10 after gating",
   "type": "module",
   "sideEffects": false,

@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-sounds",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sound labeling — level-threshold region detection (Audacity Label Sounds)",
   "type": "module",
   "sideEffects": false,

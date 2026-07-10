@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-contrast",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Speech contrast — foreground/background RMS difference, WCAG 2.0 SC 1.4.7 (Audacity Contrast)",
   "type": "module",
   "sideEffects": false,

@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-replaygain",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "ReplayGain 2.0 — track gain to the −18 LUFS reference",
   "type": "module",
   "sideEffects": false,
