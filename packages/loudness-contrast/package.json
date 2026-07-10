@@ -1,0 +1,42 @@
+{
+  "name": "@audio/loudness-contrast",
+  "version": "1.0.0",
+  "description": "Speech contrast — foreground/background RMS difference, WCAG 2.0 SC 1.4.7 (Audacity Contrast)",
+  "type": "module",
+  "sideEffects": false,
+  "main": "contrast.js",
+  "exports": {
+    ".": "./contrast.js",
+    "./audio": "./audio.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "contrast.js",
+    "audio.js"
+  ],
+  "keywords": [
+    "audio",
+    "dsp",
+    "loudness",
+    "contrast",
+    "wcag"
+  ],
+  "license": "MIT",
+  "author": "Dmitry Iv. <dfcreative@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/loudness.git",
+    "directory": "packages/loudness-contrast"
+  },
+  "homepage": "https://github.com/audiojs/loudness/tree/main/packages/loudness-contrast",
+  "bugs": {
+    "url": "https://github.com/audiojs/loudness/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "audio": "./audio.js"
+}
