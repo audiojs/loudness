@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "sideEffects": false,
   "description": "Loudness metering — umbrella for @audio/loudness-* atoms (BS.1770-4 LUFS, true peak, LRA, ReplayGain, DR, speech contrast, sound labeling)",
@@ -52,5 +52,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/audiojs/loudness.git"
-  }
+  },
+  "funding": "https://github.com/sponsors/audiojs"
 }

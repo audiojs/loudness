@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-sounds",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Sound labeling — level-threshold region detection (Audacity Label Sounds)",
   "type": "module",
   "sideEffects": false,
@@ -16,8 +16,10 @@
   "files": [
     "sounds.js",
     "audio.js",
-    "audio.d.ts"
+    "audio.d.ts",
+    "index.d.ts"
   ],
+  "types": "index.d.ts",
   "keywords": [
     "audio",
     "dsp",
@@ -42,5 +44,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "audio": "./audio.js"
+  "audio": "./audio.js",
+  "funding": "https://github.com/sponsors/audiojs"
 }

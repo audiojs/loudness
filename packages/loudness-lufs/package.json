@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-lufs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Integrated loudness (LUFS) — ITU-R BS.1770-4 K-weighted gated measurement, EBU Tech 3341-verified",
   "type": "module",
   "sideEffects": false,
@@ -10,8 +10,10 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lufs.js"
+    "lufs.js",
+    "index.d.ts"
   ],
+  "types": "index.d.ts",
   "dependencies": {
     "@audio/weighting-k": "^1.0.0"
   },
@@ -35,5 +37,6 @@
     "type": "git",
     "url": "git+https://github.com/audiojs/loudness.git",
     "directory": "packages/loudness-lufs"
-  }
+  },
+  "funding": "https://github.com/sponsors/audiojs"
 }
