@@ -17,10 +17,17 @@ export interface ReplayGainResult {
   gain: number
   /** measured integrated loudness, LUFS */
   lufs: number
+  /**
+   * linear sample peak across all channels, including any the loudness
+   * measurement excludes. 0..1 for unclipped material, higher if the source
+   * overshoots. Sample peak, as RG2 tags carry it — for dBTP see
+   * @audio/loudness-truepeak.
+   */
+  peak: number
 }
 
 /**
  * @param channels mono buffer or array of channel buffers
- * @returns { gain, lufs }, or null for silence / fully-gated input
+ * @returns { gain, lufs, peak }, or null for silence / fully-gated input
  */
 export default function replaygain(channels: Float32Array | Float32Array[], options?: ReplayGainOptions): ReplayGainResult | null

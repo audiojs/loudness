@@ -107,6 +107,24 @@ test('replaygain — −23 LUFS stereo tone wants +5 dB', () => {
 	let r = replaygain([ch, Float32Array.from(ch)], { fs })
 	almost(r.gain, 5, 0.15)
 	almost(r.lufs, -23, 0.1)
+	almost(r.peak, 10 ** (-23 / 20), 0.001, 'sample peak of a −23 dBFS sine')
+})
+
+test('replaygain peak — max |sample| over every channel, including ones excluded from loudness', () => {
+	let quiet = sine997(-23, 10), loud = sine997(-6, 10)
+	almost(replaygain([quiet, loud], { fs }).peak, 10 ** (-6 / 20), 0.001, 'loudest channel wins')
+
+	// negative excursions count: peak is |x|, not max(x)
+	let asym = sine997(-23, 10)
+	asym[1000] = -0.8
+	almost(replaygain([asym, Float32Array.from(quiet)], { fs }).peak, 0.8, 0.001)
+
+	// LFE carries no loudness weight but absolutely can clip
+	let lfe = sine997(-3, 10)
+	let surround = [quiet, Float32Array.from(quiet), Float32Array.from(quiet), lfe, Float32Array.from(quiet), Float32Array.from(quiet)]
+	almost(replaygain(surround, { fs }).peak, 10 ** (-3 / 20), 0.001, 'LFE excluded from loudness, included in peak')
+
+	is(replaygain(sine997(-23, 10), { fs }).peak > 0, true, 'mono input accepted')
 })
 
 test('dr — steady sine ~0 dB; pulse train much higher', () => {
