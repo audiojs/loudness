@@ -3,6 +3,7 @@
 // abs-gated mean → LRA = 95th − 10th percentile of the remaining distribution (LU).
 
 import kWeighting from '@audio/weighting-k'
+import { state, step } from '@audio/biquad'
 
 const OFFSET = -0.691, ABS_GATE = -70, REL_GATE = -20
 const ST_WINDOW = 3, ST_HOP = 0.1
@@ -42,20 +43,22 @@ export default function lra (channels, { fs = 48000, weights } = {}) {
 	let st = new Float64Array(hops - per + 1) // short-term block powers
 	let power = new Float64Array(hops)
 
-	// K-weight one hop at a time through a reused scratch buffer; filter state
-	// persists on `params`, so this matches filtering the whole channel without
-	// allocating a copy of it
-	let scratch = new Float32Array(hop)
+	// Both K-weighting sections and the power accumulation run per sample, straight
+	// off the source channel: one traversal instead of a copy, one pass per biquad
+	// section, and a pass to square. Intermediates stay float64 rather than being
+	// rounded back into a Float32Array between sections.
+	let [shelf, rlb] = kWeighting.coefs(fs)
 
 	for (let c = 0; c < channels.length; c++) {
 		if (!G[c]) continue // excluded channel (LFE) — no need to filter it
-		let ch = channels[c], params = { fs }
+		let ch = channels[c], s1 = state(), s2 = state()
 
-		for (let h = 0; h < hops; h++) {
-			scratch.set(ch.subarray(h * hop, h * hop + hop))
-			kWeighting(scratch, params)
+		for (let h = 0, i = 0; h < hops; h++) {
 			let z = 0
-			for (let j = 0; j < hop; j++) z += scratch[j] * scratch[j]
+			for (let e = i + hop; i < e; i++) {
+				let y = step(rlb, s2, step(shelf, s1, ch[i]))
+				z += y * y
+			}
 			power[h] = z
 		}
 
