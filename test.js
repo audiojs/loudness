@@ -57,6 +57,13 @@ test('44.1 kHz sample rate — case 1 still within ±0.1', () => {
 	almost(lufs([ch, Float32Array.from(ch)], { fs: sr }), -23, 0.1)
 })
 
+test('lufs leaves the caller’s channels untouched (K-weighting runs through a scratch buffer)', () => {
+	let ch = sine997(-23, 1)
+	let before = Float32Array.from(ch)
+	lufs([ch, Float32Array.from(ch)], { fs })
+	ok(ch.every((v, i) => v === before[i]))
+})
+
 test('truepeak — inter-sample peak: fs/4 sine at 45° phase reads ~0 dBTP while sample peak is −3 dBFS', () => {
 	let n = 4800
 	let d = new Float32Array(n)
