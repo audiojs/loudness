@@ -8,15 +8,27 @@ import kWeighting from '@audio/weighting-k'
 const OFFSET = -0.691, ABS_GATE = -70, REL_GATE = -10
 const GATE_WINDOW = 0.4, GATE_HOP = 0.1
 
+// BS.1770-4 Table 1 weights per channel count, assuming the SMPTE/WAV/Web Audio
+// ordering these layouts overwhelmingly arrive in. Surrounds count 1.41; LFE is
+// excluded from the measurement. Counts not listed fall back to 1.0 per channel
+// — pass `weights` explicitly for layouts in a different order.
+export const LAYOUTS = {
+	1: [1], // mono
+	2: [1, 1], // L R
+	4: [1, 1, 1.41, 1.41], // L R Ls Rs
+	5: [1, 1, 1, 1.41, 1.41], // L R C Ls Rs
+	6: [1, 1, 1, 0, 1.41, 1.41], // L R C LFE Ls Rs
+}
+
 /**
  * @param {Float32Array|Float32Array[]} channels — mono buffer or array of channel buffers
- * @param {object} opts — { fs, weights } — weights default 1.0 per channel
- *   (BS.1770-4 Table 1: pass 1.41 for Ls/Rs surrounds)
+ * @param {object} opts — { fs, weights } — weights default to BS.1770-4 Table 1
+ *   for known channel counts (see LAYOUTS), 1.0 per channel otherwise
  * @returns {number|null} integrated LUFS, or null for silence / all-gated input
  */
 export default function lufs (channels, { fs = 48000, weights } = {}) {
 	if (channels[0]?.length === undefined) channels = [channels]
-	let G = weights || channels.map(() => 1)
+	let G = weights || LAYOUTS[channels.length] || channels.map(() => 1)
 
 	// 75% overlap means the window is exactly 4 hops, so each hop's power can be
 	// summed once and shared by the 4 blocks covering it, rather than re-summing
@@ -38,6 +50,7 @@ export default function lufs (channels, { fs = 48000, weights } = {}) {
 	let scratch = new Float32Array(hop)
 
 	for (let c = 0; c < channels.length; c++) {
+		if (!G[c]) continue // excluded channel (LFE) — no need to filter it
 		let ch = channels[c], params = { fs }
 
 		for (let h = 0; h < hops; h++) {

@@ -57,6 +57,23 @@ test('44.1 kHz sample rate — case 1 still within ±0.1', () => {
 	almost(lufs([ch, Float32Array.from(ch)], { fs: sr }), -23, 0.1)
 })
 
+test('BS.1770-4 Table 1 — 5.1 surrounds weighted 1.41, LFE excluded, by default', () => {
+	// L/R −28, C −24, Ls/Rs −30 sums to −23 LUFS only when Ls/Rs carry 1.41.
+	// Weighting all six at 1.0 gives −23.39 instead.
+	let lfe = new Float32Array(20 * fs)
+	let surround = [sine997(-28, 20), sine997(-28, 20), sine997(-24, 20), lfe, sine997(-30, 20), sine997(-30, 20)]
+	almost(lufs(surround, { fs }), -23, 0.1)
+
+	// a full-scale LFE must not move the reading at all
+	surround[3] = sine997(-6, 20)
+	almost(lufs(surround, { fs }), -23, 0.1, 'LFE excluded from the measurement')
+
+	// explicit weights still override — and show what the old all-1.0 default cost:
+	// Σ 10^(L/10)/2 over all six = (2·10^−2.8 + 10^−2.4 + 10^−0.6 + 2·10^−3)/2 = 0.13017
+	// → 10·log10 = −8.86, i.e. the LFE alone swamps the reading by 14 LU
+	almost(lufs(surround, { fs, weights: [1, 1, 1, 1, 1, 1] }), -8.855, 0.1, 'caller-supplied weights win')
+})
+
 test('lufs leaves the caller’s channels untouched (K-weighting runs through a scratch buffer)', () => {
 	let ch = sine997(-23, 1)
 	let before = Float32Array.from(ch)

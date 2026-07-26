@@ -19,7 +19,7 @@ replaygain(channels, { fs: 48000 })   // { gain, lufs }
 | Param | Default | |
 |---|---|---|
 | `fs` | `48000` | Sample rate, Hz |
-| `weights` | `1.0` per channel | Per-channel gain array, BS.1770-4 Table 1 (pass `1.41` for Ls/Rs surrounds) |
+| `weights` | BS.1770-4 Table 1 | Per-channel gain array. Defaults by channel count assuming SMPTE/WAV/Web Audio order: 1/2ch all `1.0`, 4ch `[1,1,1.41,1.41]`, 5ch `[1,1,1,1.41,1.41]`, 6ch `[1,1,1,0,1.41,1.41]` (LFE excluded). Other counts default to `1.0` per channel — pass explicitly for layouts in a different order |
 
 Accepts `Float32Array` (mono) or `Float32Array[]` (multichannel). Returns `{ gain, lufs }` — `gain` in dB to reach −18 LUFS, `lufs` the measured integrated loudness — or `null` for silence / fully-gated input (same conditions under which `loudness-lufs` returns `null`).
 

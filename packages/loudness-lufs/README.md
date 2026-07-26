@@ -11,6 +11,6 @@ let l = lufs(channels, { fs: 48000 })   // channels: Float32Array (mono) or Floa
 // number (LUFS), or null for silence / fully-gated input
 ```
 
-Options: - `fs` — sample rate (default 48000, Hz — note this differs from the 44100 default used across `@audio/spectral`) · `weights` — per-channel gain array, BS.1770-4 Table 1 (default 1.0 per channel; pass 1.41 for Ls/Rs surrounds)
+Options: - `fs` — sample rate (default 48000, Hz — note this differs from the 44100 default used across `@audio/spectral`) · `weights` — per-channel gain array, BS.1770-4 Table 1, defaulting by channel count assuming SMPTE/WAV/Web Audio order (1/2ch all 1.0, 4ch `[1,1,1.41,1.41]`, 5ch `[1,1,1,1.41,1.41]`, 6ch `[1,1,1,0,1.41,1.41]` with LFE excluded; other counts 1.0 per channel)
 
 Part of [@audio/loudness](https://github.com/audiojs/loudness).
