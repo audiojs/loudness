@@ -21,6 +21,6 @@ export interface LraOptions {
  * channel order. Counts absent from this map fall back to 1.0 per channel. Exposed
  * so callers can inspect the defaults or derive their own from them.
  */
-export const LAYOUTS: Record<number, number[]>
+export const LAYOUTS: Readonly<Record<number, readonly number[]>>
 
 export default function lra(channels: Float32Array | Float32Array[], options?: LraOptions): number | null

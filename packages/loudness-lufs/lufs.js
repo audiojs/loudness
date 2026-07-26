@@ -13,13 +13,13 @@ const GATE_WINDOW = 0.4, GATE_HOP = 0.1
 // ordering these layouts overwhelmingly arrive in. Surrounds count 1.41; LFE is
 // excluded from the measurement. Counts not listed fall back to 1.0 per channel
 // — pass `weights` explicitly for layouts in a different order.
-export const LAYOUTS = {
-	1: [1], // mono
-	2: [1, 1], // L R
-	4: [1, 1, 1.41, 1.41], // L R Ls Rs
-	5: [1, 1, 1, 1.41, 1.41], // L R C Ls Rs
-	6: [1, 1, 1, 0, 1.41, 1.41], // L R C LFE Ls Rs
-}
+export const LAYOUTS = Object.freeze({
+	1: Object.freeze([1]), // mono
+	2: Object.freeze([1, 1]), // L R
+	4: Object.freeze([1, 1, 1.41, 1.41]), // L R Ls Rs
+	5: Object.freeze([1, 1, 1, 1.41, 1.41]), // L R C Ls Rs
+	6: Object.freeze([1, 1, 1, 0, 1.41, 1.41]), // L R C LFE Ls Rs
+})
 
 /**
  * @param {Float32Array|Float32Array[]} channels — mono buffer or array of channel buffers
