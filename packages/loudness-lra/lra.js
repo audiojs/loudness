@@ -15,30 +15,45 @@ const ST_WINDOW = 3, ST_HOP = 0.1
 export default function lra (channels, { fs = 48000, weights } = {}) {
 	if (channels[0]?.length === undefined) channels = [channels]
 	let G = weights || channels.map(() => 1)
-	let k = channels.map(ch => {
-		let c = Float32Array.from(ch)
-		kWeighting(c, { fs })
-		return c
-	})
 
-	let win = Math.round(ST_WINDOW * fs)
+	// the 3 s window advances by 100 ms, so it spans exactly 30 hops: summing each
+	// hop's power once and sharing it across the 30 windows covering it replaces
+	// 30 passes over every sample with one
 	let hop = Math.round(ST_HOP * fs)
-	let n = k[0].length
+	let per = Math.round(ST_WINDOW / ST_HOP)
+	let win = hop * per
+	let n = channels[0].length
 	if (n < win) return null
 
-	let st = [] // short-term block powers
-	for (let i = 0; i + win <= n; i += hop) {
-		let sum = 0
-		for (let c = 0; c < k.length; c++) {
-			let z = 0, ch = k[c]
-			for (let j = i; j < i + win; j++) z += ch[j] * ch[j]
-			sum += G[c] * z / win
+	let hops = Math.floor(n / hop)
+	let st = new Float64Array(hops - per + 1) // short-term block powers
+	let power = new Float64Array(hops)
+
+	// K-weight one hop at a time through a reused scratch buffer; filter state
+	// persists on `params`, so this matches filtering the whole channel without
+	// allocating a copy of it
+	let scratch = new Float32Array(hop)
+
+	for (let c = 0; c < channels.length; c++) {
+		let ch = channels[c], params = { fs }
+
+		for (let h = 0; h < hops; h++) {
+			scratch.set(ch.subarray(h * hop, h * hop + hop))
+			kWeighting(scratch, params)
+			let z = 0
+			for (let j = 0; j < hop; j++) z += scratch[j] * scratch[j]
+			power[h] = z
 		}
-		st.push(sum)
+
+		for (let b = 0; b < st.length; b++) {
+			let z = 0
+			for (let p = 0; p < per; p++) z += power[b + p]
+			st[b] += G[c] * z / win
+		}
 	}
 
 	let absT = 10 ** ((ABS_GATE - OFFSET) / 10)
-	let gated = st.filter(p => p > absT)
+	let gated = [...st].filter(p => p > absT)
 	if (!gated.length) return null
 	let mean = gated.reduce((a, b) => a + b, 0) / gated.length
 	let final = gated.filter(p => p > mean * 10 ** (REL_GATE / 10)).sort((a, b) => a - b)
