@@ -74,7 +74,7 @@ test('BS.1770-4 Table 1 — 5.1 surrounds weighted 1.41, LFE excluded, by defaul
 	almost(lufs(surround, { fs, weights: [1, 1, 1, 1, 1, 1] }), -8.855, 0.1, 'caller-supplied weights win')
 })
 
-test('lufs leaves the caller’s channels untouched (K-weighting runs through a scratch buffer)', () => {
+test('lufs leaves the caller’s channels untouched (K-weighting never writes back to the input)', () => {
 	let ch = sine997(-23, 1)
 	let before = Float32Array.from(ch)
 	lufs([ch, Float32Array.from(ch)], { fs })
