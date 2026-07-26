@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "truepeak.js",
   "exports": {
-    ".": "./truepeak.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./truepeak.js"
+    },
     "./audio": {
       "types": "./audio.d.ts",
       "default": "./audio.js"

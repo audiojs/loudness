@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "dr.js",
   "exports": {
-    ".": "./dr.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./dr.js"
+    },
     "./audio": {
       "types": "./audio.d.ts",
       "default": "./audio.js"

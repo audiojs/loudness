@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "lra.js",
   "exports": {
-    ".": "./lra.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./lra.js"
+    },
     "./audio": {
       "types": "./audio.d.ts",
       "default": "./audio.js"

@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "contrast.js",
   "exports": {
-    ".": "./contrast.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./contrast.js"
+    },
     "./audio": {
       "types": "./audio.d.ts",
       "default": "./audio.js"

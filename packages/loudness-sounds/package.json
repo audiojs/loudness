@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "sounds.js",
   "exports": {
-    ".": "./sounds.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./sounds.js"
+    },
     "./audio": {
       "types": "./audio.d.ts",
       "default": "./audio.js"

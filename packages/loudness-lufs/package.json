@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "lufs.js",
   "exports": {
-    ".": "./lufs.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./lufs.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
