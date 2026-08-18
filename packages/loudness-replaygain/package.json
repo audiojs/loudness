@@ -6,7 +6,10 @@
   "sideEffects": false,
   "main": "replaygain.js",
   "exports": {
-    ".": "./replaygain.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./replaygain.js"
+    },
     "./audio": {
       "types": "./audio.d.ts",
       "default": "./audio.js"
