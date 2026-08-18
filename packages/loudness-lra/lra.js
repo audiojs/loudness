@@ -3,42 +3,74 @@
 // abs-gated mean → LRA = 95th − 10th percentile of the remaining distribution (LU).
 
 import kWeighting from '@audio/weighting-k'
+import { state, step } from '@audio/biquad'
 
 const OFFSET = -0.691, ABS_GATE = -70, REL_GATE = -20
 const ST_WINDOW = 3, ST_HOP = 0.1
 
+// BS.1770-4 Table 1 weights per channel count, assuming the SMPTE/WAV/Web Audio
+// ordering these layouts overwhelmingly arrive in. Surrounds count 1.41; LFE is
+// excluded from the measurement. Counts not listed fall back to 1.0 per channel
+// — pass `weights` explicitly for layouts in a different order.
+export const LAYOUTS = Object.freeze({
+	1: Object.freeze([1]), // mono
+	2: Object.freeze([1, 1]), // L R
+	4: Object.freeze([1, 1, 1.41, 1.41]), // L R Ls Rs
+	5: Object.freeze([1, 1, 1, 1.41, 1.41]), // L R C Ls Rs
+	6: Object.freeze([1, 1, 1, 0, 1.41, 1.41]), // L R C LFE Ls Rs
+})
+
 /**
  * @param {Float32Array|Float32Array[]} channels — mono buffer or channel array
- * @param {object} opts — { fs=48000, weights }
+ * @param {object} opts — { fs=48000, weights } — weights default to BS.1770-4
+ *   Table 1 for known channel counts (see LAYOUTS), 1.0 per channel otherwise
  * @returns {number|null} loudness range in LU, or null for silence / too-short input
  */
 export default function lra (channels, { fs = 48000, weights } = {}) {
 	if (channels[0]?.length === undefined) channels = [channels]
-	let G = weights || channels.map(() => 1)
-	let k = channels.map(ch => {
-		let c = Float32Array.from(ch)
-		kWeighting(c, { fs })
-		return c
-	})
+	let G = weights || LAYOUTS[channels.length] || channels.map(() => 1)
 
-	let win = Math.round(ST_WINDOW * fs)
+	// the 3 s window advances by 100 ms, so it spans exactly 30 hops: summing each
+	// hop's power once and sharing it across the 30 windows covering it replaces
+	// 30 passes over every sample with one
 	let hop = Math.round(ST_HOP * fs)
-	let n = k[0].length
+	let per = Math.round(ST_WINDOW / ST_HOP)
+	let win = hop * per
+	let n = channels[0].length
 	if (n < win) return null
 
-	let st = [] // short-term block powers
-	for (let i = 0; i + win <= n; i += hop) {
-		let sum = 0
-		for (let c = 0; c < k.length; c++) {
-			let z = 0, ch = k[c]
-			for (let j = i; j < i + win; j++) z += ch[j] * ch[j]
-			sum += G[c] * z / win
+	let hops = Math.floor(n / hop)
+	let st = new Float64Array(hops - per + 1) // short-term block powers
+	let power = new Float64Array(hops)
+
+	// Both K-weighting sections and the power accumulation run per sample, straight
+	// off the source channel: one traversal instead of a copy, one pass per biquad
+	// section, and a pass to square. Intermediates stay float64 rather than being
+	// rounded back into a Float32Array between sections.
+	let [shelf, rlb] = kWeighting.coefs(fs)
+
+	for (let c = 0; c < channels.length; c++) {
+		if (!G[c]) continue // excluded channel (LFE) — no need to filter it
+		let ch = channels[c], s1 = state(), s2 = state()
+
+		for (let h = 0, i = 0; h < hops; h++) {
+			let z = 0
+			for (let e = i + hop; i < e; i++) {
+				let y = step(rlb, s2, step(shelf, s1, ch[i]))
+				z += y * y
+			}
+			power[h] = z
 		}
-		st.push(sum)
+
+		for (let b = 0; b < st.length; b++) {
+			let z = 0
+			for (let p = 0; p < per; p++) z += power[b + p]
+			st[b] += G[c] * z / win
+		}
 	}
 
 	let absT = 10 ** ((ABS_GATE - OFFSET) / 10)
-	let gated = st.filter(p => p > absT)
+	let gated = [...st].filter(p => p > absT)
 	if (!gated.length) return null
 	let mean = gated.reduce((a, b) => a + b, 0) / gated.length
 	let final = gated.filter(p => p > mean * 10 ** (REL_GATE / 10)).sort((a, b) => a - b)

@@ -57,6 +57,30 @@ test('44.1 kHz sample rate — case 1 still within ±0.1', () => {
 	almost(lufs([ch, Float32Array.from(ch)], { fs: sr }), -23, 0.1)
 })
 
+test('BS.1770-4 Table 1 — 5.1 surrounds weighted 1.41, LFE excluded, by default', () => {
+	// L/R −28, C −24, Ls/Rs −30 sums to −23 LUFS only when Ls/Rs carry 1.41.
+	// Weighting all six at 1.0 gives −23.39 instead.
+	let lfe = new Float32Array(20 * fs)
+	let surround = [sine997(-28, 20), sine997(-28, 20), sine997(-24, 20), lfe, sine997(-30, 20), sine997(-30, 20)]
+	almost(lufs(surround, { fs }), -23, 0.1)
+
+	// a full-scale LFE must not move the reading at all
+	surround[3] = sine997(-6, 20)
+	almost(lufs(surround, { fs }), -23, 0.1, 'LFE excluded from the measurement')
+
+	// explicit weights still override — and show what the old all-1.0 default cost:
+	// Σ 10^(L/10)/2 over all six = (2·10^−2.8 + 10^−2.4 + 10^−0.6 + 2·10^−3)/2 = 0.13017
+	// → 10·log10 = −8.86, i.e. the LFE alone swamps the reading by 14 LU
+	almost(lufs(surround, { fs, weights: [1, 1, 1, 1, 1, 1] }), -8.855, 0.1, 'caller-supplied weights win')
+})
+
+test('lufs leaves the caller’s channels untouched (K-weighting never writes back to the input)', () => {
+	let ch = sine997(-23, 1)
+	let before = Float32Array.from(ch)
+	lufs([ch, Float32Array.from(ch)], { fs })
+	ok(ch.every((v, i) => v === before[i]))
+})
+
 test('truepeak — inter-sample peak: fs/4 sine at 45° phase reads ~0 dBTP while sample peak is −3 dBFS', () => {
 	let n = 4800
 	let d = new Float32Array(n)
@@ -83,6 +107,24 @@ test('replaygain — −23 LUFS stereo tone wants +5 dB', () => {
 	let r = replaygain([ch, Float32Array.from(ch)], { fs })
 	almost(r.gain, 5, 0.15)
 	almost(r.lufs, -23, 0.1)
+	almost(r.peak, 10 ** (-23 / 20), 0.001, 'sample peak of a −23 dBFS sine')
+})
+
+test('replaygain peak — max |sample| over every channel, including ones excluded from loudness', () => {
+	let quiet = sine997(-23, 10), loud = sine997(-6, 10)
+	almost(replaygain([quiet, loud], { fs }).peak, 10 ** (-6 / 20), 0.001, 'loudest channel wins')
+
+	// negative excursions count: peak is |x|, not max(x)
+	let asym = sine997(-23, 10)
+	asym[1000] = -0.8
+	almost(replaygain([asym, Float32Array.from(quiet)], { fs }).peak, 0.8, 0.001)
+
+	// LFE carries no loudness weight but absolutely can clip
+	let lfe = sine997(-3, 10)
+	let surround = [quiet, Float32Array.from(quiet), Float32Array.from(quiet), lfe, Float32Array.from(quiet), Float32Array.from(quiet)]
+	almost(replaygain(surround, { fs }).peak, 10 ** (-3 / 20), 0.001, 'LFE excluded from loudness, included in peak')
+
+	is(replaygain(sine997(-23, 10), { fs }).peak > 0, true, 'mono input accepted')
 })
 
 test('dr — steady sine ~0 dB; pulse train much higher', () => {

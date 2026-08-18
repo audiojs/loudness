@@ -13,17 +13,21 @@ import replaygain from '@audio/loudness-replaygain'
 Track gain per [ReplayGain 2.0](https://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification), which adopted BS.1770 integrated loudness as its measurement basis: `gain = -18 LUFS − measured`. Delegates the loudness measurement to `@audio/loudness-lufs` (ITU-R BS.1770-4 K-weighted gated loudness) and subtracts from the −18 LUFS RG2 reference.
 
 ```js
-replaygain(channels, { fs: 48000 })   // { gain, lufs }
+replaygain(channels, { fs: 48000 })   // { gain, lufs, peak }
 ```
 
 | Param | Default | |
 |---|---|---|
 | `fs` | `48000` | Sample rate, Hz |
-| `weights` | `1.0` per channel | Per-channel gain array, BS.1770-4 Table 1 (pass `1.41` for Ls/Rs surrounds) |
+| `weights` | BS.1770-4 Table 1 | Per-channel gain array. Defaults by channel count assuming SMPTE/WAV/Web Audio order: 1/2ch all `1.0`, 4ch `[1,1,1.41,1.41]`, 5ch `[1,1,1,1.41,1.41]`, 6ch `[1,1,1,0,1.41,1.41]` (LFE excluded). Other counts default to `1.0` per channel — pass explicitly for layouts in a different order |
 
-Accepts `Float32Array` (mono) or `Float32Array[]` (multichannel). Returns `{ gain, lufs }` — `gain` in dB to reach −18 LUFS, `lufs` the measured integrated loudness — or `null` for silence / fully-gated input (same conditions under which `loudness-lufs` returns `null`).
+Accepts `Float32Array` (mono) or `Float32Array[]` (multichannel). Returns `{ gain, lufs, peak }` — `gain` in dB to reach −18 LUFS, `lufs` the measured integrated loudness, `peak` the linear sample peak — or `null` for silence / fully-gated input (same conditions under which `loudness-lufs` returns `null`).
 
-**Use when:** computing per-track/per-album normalization gain for players and tag writers targeting the RG2 −18 LUFS reference.
+`peak` is the maximum absolute sample across every channel, including any the loudness measurement excludes (LFE), since it describes what clips on playback rather than weighted loudness. It is `0..1` for unclipped material and can exceed `1` for sources that overshoot. RG2 tags carry sample peak, which is what this is; for 4x-oversampled dBTP use [`@audio/loudness-truepeak`](https://www.npmjs.com/package/@audio/loudness-truepeak).
+
+The pair is what makes the gain safe to apply: a player raising a track by `gain` dB should clamp so that `peak` stays below full scale.
+
+**Use when:** computing per-track/per-album normalization gain for players and tag writers targeting the RG2 −18 LUFS reference — `gain` and `peak` map directly onto the `REPLAYGAIN_TRACK_GAIN` / `REPLAYGAIN_TRACK_PEAK` tag pair.
 
 Per the ReplayGain 2.0 specification (BS.1770-based loudness, −18 LUFS reference), built on `@audio/loudness-lufs`.
 
