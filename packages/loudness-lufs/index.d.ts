@@ -13,14 +13,14 @@ export interface LufsOptions {
 }
 
 /**
- * @param channels mono buffer or array of channel buffers
- * @returns integrated LUFS, or null for silence / fully-gated input
- */
-/**
  * BS.1770-4 Table 1 weights keyed by channel count, assuming SMPTE/WAV/Web Audio
  * channel order. Counts absent from this map fall back to 1.0 per channel. Exposed
  * so callers can inspect the defaults or derive their own from them.
  */
 export const LAYOUTS: Readonly<Record<number, readonly number[]>>
 
+/**
+ * @param channels mono buffer or array of channel buffers
+ * @returns integrated LUFS, or null for silence / fully-gated input
+ */
 export default function lufs(channels: Float32Array | Float32Array[], options?: LufsOptions): number | null

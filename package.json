@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "type": "module",
   "sideEffects": false,
   "description": "Loudness metering — umbrella for @audio/loudness-* atoms (BS.1770-4 LUFS, true peak, LRA, ReplayGain, DR, speech contrast, sound labeling)",
@@ -23,11 +23,15 @@
   },
   "main": "index.js",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
   "scripts": {
     "test": "node test.js",
@@ -35,13 +39,13 @@
     "publish:all": "npm publish --workspaces && npm publish"
   },
   "dependencies": {
-    "@audio/loudness-contrast": "^1.0.0",
-    "@audio/loudness-dr": "^1.0.0",
-    "@audio/loudness-lra": "^1.0.0",
-    "@audio/loudness-lufs": "^1.0.0",
-    "@audio/loudness-replaygain": "^1.0.0",
-    "@audio/loudness-sounds": "^1.0.0",
-    "@audio/loudness-truepeak": "^1.0.0"
+    "@audio/loudness-contrast": "^1.0.4",
+    "@audio/loudness-dr": "^1.1.4",
+    "@audio/loudness-lra": "^1.2.0",
+    "@audio/loudness-lufs": "^1.1.0",
+    "@audio/loudness-replaygain": "^1.2.0",
+    "@audio/loudness-sounds": "^1.0.3",
+    "@audio/loudness-truepeak": "^1.1.4"
   },
   "devDependencies": {
     "tst": "^9.4.0"
@@ -53,5 +57,6 @@
     "type": "git",
     "url": "git+https://github.com/audiojs/loudness.git"
   },
-  "funding": "https://github.com/sponsors/audiojs"
+  "funding": "https://github.com/sponsors/audiojs",
+  "types": "index.d.ts"
 }

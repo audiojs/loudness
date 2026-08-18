@@ -13,14 +13,14 @@ export interface LraOptions {
 }
 
 /**
- * @param channels mono buffer or array of channel buffers
- * @returns loudness range in LU; 0 if fewer than 2 blocks survive gating; null for silence / input shorter than the 3 s short-term window
- */
-/**
  * BS.1770-4 Table 1 weights keyed by channel count, assuming SMPTE/WAV/Web Audio
  * channel order. Counts absent from this map fall back to 1.0 per channel. Exposed
  * so callers can inspect the defaults or derive their own from them.
  */
 export const LAYOUTS: Readonly<Record<number, readonly number[]>>
 
+/**
+ * @param channels mono buffer or array of channel buffers
+ * @returns loudness range in LU; 0 if fewer than 2 blocks survive gating; null for silence / input shorter than the 3 s short-term window
+ */
 export default function lra(channels: Float32Array | Float32Array[], options?: LraOptions): number | null
