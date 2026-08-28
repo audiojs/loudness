@@ -1,5 +1,7 @@
 # @audio/loudness
 
+Try it in the browser: [Loudness meter and normalizer](https://audiojs.dev/util/loudness/). Runs on this package, nothing is uploaded.
+
 > Loudness metering per ITU-R BS.1770-4 / EBU R128 — umbrella re-exporting every `@audio/loudness-*` atom.
 
 ```js
