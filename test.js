@@ -1,5 +1,6 @@
 import test, { almost, ok, is } from 'tst'
 import { lufs, truepeak, lra, replaygain, dr, speechContrast, sounds } from './index.js'
+import resample from '@audio/resample-sinc'
 
 const fs = 48000
 
@@ -90,6 +91,37 @@ test('truepeak — inter-sample peak: fs/4 sine at 45° phase reads ~0 dBTP whil
 	almost(20 * Math.log10(samplePeak), -3.01, 0.05, 'sample peak −3 dBFS')
 	almost(truepeak(d, { fs }), 0, 0.3, 'true peak ~0 dBTP')
 	almost(truepeak(sine997(-6, 2), { fs }), -6, 0.1, 'plain sine reads its level')
+})
+
+// The polyphase kernels read what upsampling with @audio/resample-sinc reads (its 32-tap Lanczos kernel, taps outside
+// the signal dropped and the rest renormalized); the resampler stores Float32, so they agree to float precision.
+test('truepeak — polyphase reads the same peak as upsampling with @audio/resample-sinc, ends and short signals included', () => {
+	let reference = (ch, n) => {
+		let peak = 0
+		for (let v of ch) peak = Math.max(peak, Math.abs(v))
+		for (let v of resample(ch, { from: fs, to: fs * n })) peak = Math.max(peak, Math.abs(v))
+		return peak > 0 ? 20 * Math.log10(peak) : -Infinity
+	}
+	let seed = 1, random = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - .5
+	let noise = n => Float32Array.from({ length: n }, random)
+	let click = (n, at) => { let d = new Float32Array(n); d[at] = 1; d[at + 1] = -1; return d }
+	let fs4 = Float32Array.from({ length: 64 }, (_, i) => Math.sin(Math.PI / 4 + Math.PI * i / 2))
+	// a last block of 5 samples (64 · 3 + 5): the block before it holds reads that reach past the end too
+	let tail = noise(197); tail.fill(0, 0, 150); tail[185] = .9; tail[186] = -.9; tail[195] = .3; tail[196] = -.3
+	let signals = { noise: noise(3000), 'click at the start': click(200, 0), 'click at the end': click(200, 198), 'fs/4 at 45°': fs4, 'shorter than the kernel': noise(20), 'one sample': noise(1), 'a short last block': tail }
+	for (let [name, d] of Object.entries(signals)) for (let n of [2, 2.5, 3, 4, 8])
+		almost(truepeak(d, { fs, oversample: n }), reference(d, n), 1e-5, `${name}, ${n}×`)
+	is(truepeak(new Float32Array(0), { fs }), -Infinity, 'no samples: silence')
+	is(truepeak(new Float32Array(100), { fs }), -Infinity, 'zeros: silence')
+})
+
+// A steady full-scale tone is the slowest case: every block nears the peak. Upsampling through the resampler took
+// about as long as the audio (1× realtime); the polyphase reads with their bounds take a small part of it.
+test('truepeak — a minute of steady stereo tone, the slowest case, reads in well under a minute', () => {
+	let ch = sine997(-3, 60), t = performance.now()
+	almost(truepeak([ch, Float32Array.from(ch)], { fs }), -3, 0.1)
+	let ms = performance.now() - t
+	ok(ms < 6000, `${ms.toFixed(0)} ms for 60 s`)
 })
 
 test('lra — EBU 3342: −20/−30 LUFS alternation → 10 LU; steady tone → ~0 LU', () => {

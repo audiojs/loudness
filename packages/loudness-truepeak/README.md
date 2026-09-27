@@ -10,7 +10,7 @@ npm install @audio/loudness-truepeak
 import truepeak from '@audio/loudness-truepeak'
 ```
 
-True peak per ITU-R BS.1770-4 Annex 2 methodology: the sample-domain peak and a 4×-oversampled peak (windowed-sinc interpolation via `@audio/resample-sinc`, a generic sinc interpolator rather than the specific FIR in Annex 2) are both taken per channel, and the maximum across all of them is reported — catching inter-sample peaks that a sample-domain peak meter misses.
+True peak per ITU-R BS.1770-4 Annex 2 methodology: the sample-domain peak and a 4×-oversampled peak (windowed-sinc interpolation with `@audio/resample-sinc`'s kernel, read polyphase, a generic sinc interpolator rather than the specific FIR in Annex 2) are both taken per channel, and the maximum across all of them is reported — catching inter-sample peaks that a sample-domain peak meter misses.
 
 ```js
 truepeak(channels)                        // default 4× oversampling @ 48000 Hz
