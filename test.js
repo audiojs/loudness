@@ -1,6 +1,5 @@
 import test, { almost, ok, is } from 'tst'
 import { lufs, truepeak, lra, replaygain, dr, speechContrast, sounds } from './index.js'
-import resample from '@audio/resample-sinc'
 
 const fs = 48000
 
@@ -19,30 +18,37 @@ function sineAmp (amp, seconds, sr = fs) {
 	return d
 }
 
-test('EBU 3341 case 1 — stereo 997 Hz sine at −23 dBFS → −23.0 ±0.1 LUFS', () => {
-	let ch = sine997(-23, 20)
-	almost(lufs([ch, Float32Array.from(ch)], { fs }), -23, 0.1)
+// ── EBU conformance ─────────────────────────────────────────────────────────
+// EBU Tech 3341 and Tech 3342 (V4, November 2023), Table 1 "Minimum requirements test signals", generated as the tables
+// define them: a 1000 Hz sine at a per-channel peak level in dBFS, in phase on both channels, 48 kHz; "tones similar to
+// #1" follow each other on one running phase. Momentary and short-term loudness (cases 1, 2, 9-14) are audio's meters;
+// this family measures integrated loudness, loudness range and true peak.
+
+/** Segments [seconds, dBFS] of a 1000 Hz sine, `nch` identical channels. */
+function tones (segs, { sr = fs, nch = 2 } = {}) {
+	let n = segs.reduce((n, [s]) => n + Math.round(s * sr), 0), x = new Float32Array(n), i = 0
+	for (let [s, db] of segs) for (let e = i + Math.round(s * sr), a = 10 ** (db / 20); i < e; i++) x[i] = a * Math.sin(2 * Math.PI * 1000 * i / sr)
+	return Array.from({ length: nch }, () => x.slice())
+}
+
+test('EBU Tech 3341 cases 1-6: integrated loudness −23.0 ±0.1 LUFS (case 2: −33.0)', () => {
+	almost(lufs(tones([[20, -23]]), { fs }), -23, 0.1, 'case 1: 20 s at −23 dBFS')
+	almost(lufs(tones([[20, -33]]), { fs }), -33, 0.1, 'case 2: 20 s at −33 dBFS')
+	almost(lufs(tones([[10, -36], [60, -23], [10, -36]]), { fs }), -23, 0.1, 'case 3: 10 s −36, 60 s −23, 10 s −36')
+	almost(lufs(tones([[10, -72], [10, -36], [60, -23], [10, -36], [10, -72]]), { fs }), -23, 0.1, 'case 4: −72 and −36 gated out')
+	almost(lufs(tones([[20, -26], [20.1, -20], [20, -26]]), { fs }), -23, 0.1, 'case 5: 20 s −26, 20.1 s −20, 20 s −26')
+	let [l] = tones([[20, -28]], { nch: 1 }), [c] = tones([[20, -24]], { nch: 1 }), [s] = tones([[20, -30]], { nch: 1 })
+	almost(lufs([l, l.slice(), c, s, s.slice()], { fs }), -23, 0.1, 'case 6: 5.0, L R −28, C −24, Ls Rs −30 dBFS')
 })
 
-test('EBU 3341 case 2 — stereo 997 Hz sine at −33 dBFS → −33.0 ±0.1 LUFS', () => {
-	let ch = sine997(-33, 20)
-	almost(lufs([ch, Float32Array.from(ch)], { fs }), -33, 0.1)
+// BS.1770-4 Annex 1: coefficients "for other sampling rates ... should provide the same frequency response"
+test('EBU Tech 3341 case 1 at 8-192 kHz: −23.0 ±0.1 LUFS, K-weighting redesigned per rate', () => {
+	for (let sr of [8000, 16000, 22050, 32000, 44100, 88200, 96000, 192000]) almost(lufs(tones([[20, -23]], { sr }), { fs: sr }), -23, 0.1, `${sr} Hz`)
 })
 
-test('mono is 3.01 LU below the same stereo signal (channel-sum, BS.1770-4 §2)', () => {
-	let ch = sine997(-23, 10)
-	let stereo = lufs([ch, Float32Array.from(ch)], { fs })
-	let mono = lufs(ch, { fs })
-	almost(stereo - mono, 3.01, 0.05)
-})
-
-test('EBU 3341 case 3 — quiet lead/tail (−36 dBFS) gated out around a −23 dBFS body → −23.0 ±0.1', () => {
-	let quiet = sine997(-36, 5), body = sine997(-23, 20)
-	let ch = new Float32Array(quiet.length * 2 + body.length)
-	ch.set(quiet, 0)
-	ch.set(body, quiet.length)
-	ch.set(quiet, quiet.length + body.length)
-	almost(lufs([ch, Float32Array.from(ch)], { fs }), -23, 0.1)
+test('mono is 3.01 LU below the same stereo signal (channel sum, BS.1770-4 eq. 2)', () => {
+	let [ch] = tones([[10, -23]], { nch: 1 })
+	almost(lufs([ch, ch.slice()], { fs }) - lufs(ch, { fs }), 3.01, 0.005)
 })
 
 test('silence and sub-window input → null', () => {
@@ -50,15 +56,100 @@ test('silence and sub-window input → null', () => {
 	is(lufs(sine997(-23, 0.2), { fs }), null, 'shorter than one 400 ms block')
 })
 
-test('44.1 kHz sample rate — case 1 still within ±0.1', () => {
-	let sr = 44100
-	let a = 10 ** (-23 / 20)
-	let ch = new Float32Array(20 * sr)
-	for (let i = 0; i < ch.length; i++) ch[i] = a * Math.sin(2 * Math.PI * 997 * i / sr)
-	almost(lufs([ch, Float32Array.from(ch)], { fs: sr }), -23, 0.1)
+// Gates at −70 LKFS absolute (BS.1770-4 eq. 6), strict: a block at −70.3 LUFS is out, at −69.7 it counts
+test('absolute gate at −70 LKFS', () => {
+	is(lufs(tones([[5, -70.3]]), { fs }), null, '−70.3 LUFS gated out')
+	almost(lufs(tones([[5, -69.7]]), { fs }), -69.7, 0.1, '−69.7 LUFS measured')
 })
 
-test('BS.1770-4 Table 1 — 5.1 surrounds weighted 1.41, LFE excluded, by default', () => {
+// EBU Tech 3341 §2.6 and cases 15-23: true peak within +0.2/−0.4 dB; FFS: fraction of full scale. 15-19: sines at
+// fs/4, fs/6, fs/8 with 10 ms fades; 20-23: a single fs/4 period at 1.00 inside an fs/6 sine at 0.50, continuous in
+// phase, synthesized at 4·fs, low-passed and taken with 0-3 samples offset.
+function tpSine (div, a, deg, sec = 1) {
+	let n = sec * fs, fade = 0.01 * fs, x = new Float32Array(n)
+	for (let i = 0; i < n; i++) {
+		let w = Math.min(1, i / fade, (n - 1 - i) / fade), r = 0.5 - 0.5 * Math.cos(Math.PI * w)
+		x[i] = r * a * Math.sin(2 * Math.PI * i / div + deg * Math.PI / 180)
+	}
+	return [x, x.slice()]
+}
+function tpBurst (off) {
+	let up = 4, n4 = 2 * fs, x4 = new Float64Array(n4), at = Math.round(n4 / 2 / 24) * 24  // a rising zero of fs/6
+	for (let i = 0; i < n4; i++) x4[i] = i >= at && i < at + 16 ? Math.sin(2 * Math.PI * (i - at) / 16) : 0.5 * Math.sin(2 * Math.PI * (i < at ? i : i - at - 16) / 24)
+	for (let i = 0, f = 0.005 * up * fs; i < f; i++) { let w = 0.5 - 0.5 * Math.cos(Math.PI * i / f); x4[i] *= w; x4[n4 - 1 - i] *= w }
+	// anti-aliasing: Kaiser-windowed sinc (β 12, 1023 taps) cut at fs/2
+	let N = 1023, M = 511, i0 = z => { let s = 1, t = 1; for (let k = 1; k < 50; k++) s += t *= (z / 2 / k) ** 2; return s }
+	let h = Float64Array.from({ length: N }, (_, k) => (k === M ? 0.25 : Math.sin(Math.PI * (k - M) / up) / (Math.PI * (k - M))) * i0(12 * Math.sqrt(1 - ((k - M) / M) ** 2)))
+	let hs = h.reduce((a, b) => a + b), y = new Float32Array(Math.floor((n4 - off) / up))
+	for (let j = 0; j < y.length; j++) { let c = j * up + off, v = 0; for (let k = 0; k < N; k++) { let i = c + M - k; if (i >= 0 && i < n4) v += h[k] * x4[i] } y[j] = v / hs }
+	return [y, y.slice()]
+}
+test('EBU Tech 3341 cases 15-23: true peak within +0.2/−0.4 dB', () => {
+	let within = (v, want, what) => ok(v <= want + 0.2 && v >= want - 0.4, `${what}: ${v.toFixed(3)} dBTP, want ${want} +0.2/−0.4`)
+	within(truepeak(tpSine(4, 0.5, 0), { fs }), -6, 'case 15: fs/4, 0.50 FFS, 0°')
+	within(truepeak(tpSine(4, 0.5, 45), { fs }), -6, 'case 16: fs/4, 0.50 FFS, 45°')
+	within(truepeak(tpSine(6, 0.5, 60), { fs }), -6, 'case 17: fs/6, 0.50 FFS, 60°')
+	within(truepeak(tpSine(8, 0.5, 67.5), { fs }), -6, 'case 18: fs/8, 0.50 FFS, 67.5°')
+	within(truepeak(tpSine(4, 1.41, 45), { fs }), 3, 'case 19: fs/4, 1.41 FFS, 45°')
+	for (let off = 0; off < 4; off++) within(truepeak(tpBurst(off), { fs }), 0, `case ${20 + off}: fs/4 burst, ${off} samples offset`)
+})
+
+test('EBU Tech 3342 cases 1-4: loudness range within ±1 LU', () => {
+	almost(lra(tones([[20, -20], [20, -30]]), { fs }), 10, 1, 'case 1: −20 then −30 dBFS')
+	almost(lra(tones([[20, -20], [20, -15]]), { fs }), 5, 1, 'case 2: −20 then −15 dBFS')
+	almost(lra(tones([[20, -40], [20, -20]]), { fs }), 20, 1, 'case 3: −40 then −20 dBFS')
+	almost(lra(tones([[20, -50], [20, -35], [20, -20], [20, -35], [20, -50]]), { fs }), 15, 1, 'case 4: −50 −35 −20 −35 −50 dBFS')
+})
+
+// ── Against reference meters, on speech-like bursts ─────────────────────────────
+/** Deterministic speech-like signal: LCG noise band-shaped (one-pole 3 kHz low-pass, 150 Hz high-pass) in 4 Hz syllables,
+ *  1-4 s phrases at random levels ending in a 0.4 s pause; sample peak −6 dBFS, channel c at 0.8^c. */
+function babble (sr, seconds, nch = 1, seed = 7) {
+	let n = Math.round(seconds * sr), x = new Float32Array(n), lp = 0, hp = 0, prev = 0, phrase = 0, level = 0.3, peak = 0
+	let rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+	let a = Math.exp(-2 * Math.PI * 3000 / sr), b = Math.exp(-2 * Math.PI * 150 / sr)
+	for (let i = 0; i < n; i++) {
+		let t = i / sr
+		if (t >= phrase) { phrase = t + 1 + 3 * rnd(); level = 0.02 + 0.5 * rnd() ** 2 }
+		let env = phrase - t < 0.4 ? 0.003 : level * Math.sin(Math.PI * ((t * 4) % 1)) ** 2
+		lp = (1 - a) * (rnd() * 2 - 1) + a * lp
+		hp = b * (hp + lp - prev); prev = lp
+		x[i] = env * hp
+	}
+	for (let v of x) peak = Math.max(peak, Math.abs(v))
+	return Array.from({ length: nch }, (_, c) => x.map(v => v * 0.5 / peak * 0.8 ** c))
+}
+// [rate, seconds, channels, libebur128 1.2.6 integrated loudness (pyebur128 0.1.1, same float32 samples)]
+const REFS = [
+	[44100, 10, 2, -19.364270003173353],
+	[8000, 20, 1, -20.083349135086866],
+	[96000, 5, 1, -22.32271642233393],
+	[48000, 30, 2, -21.620665120510523],
+]
+test('integrated loudness equals libebur128 to 1e-4 LU (8-96 kHz, mono and stereo)', () => {
+	for (let [sr, sec, nch, I] of REFS) almost(lufs(babble(sr, sec, nch), { fs: sr }), I, 1e-4, `${sr} Hz, ${nch} ch`)
+})
+// [rate, seconds, channels, band-limited true peak of the babble, and of it clipped 18 dB (×8 into ±0.5): the samples
+// read 32× oversampled through a Kaiser-windowed sinc, β 14, 128 taps a phase (scipy firwin), silence outside]
+const TP_REFS = [
+	[8000, 20, 1, -3.2608089267577913, 1.6761903084219987],
+	[16000, 10, 1, -3.905804387484591, 1.4573661223182879],
+	[44100, 10, 2, -5.49243029356415, 0.8355808847840162],
+	[48000, 10, 2, -5.765709368091915, 0.8598145521764129],
+]
+// Clipping, like limiting, fills the band up to Nyquist and peaks between the points: the 32-tap Lanczos points of 1.1
+// read the clipped babble 0.36-0.40 dB low, the 8 kHz babble 0.25 dB low; libebur128 reads the babble 0.08-0.84 dB low
+test('true peak within 0.01 dB of the band-limited waveform at 8, 16, 44.1 and 48 kHz, clipped too', () => {
+	for (let [sr, sec, nch, tp, tpClip] of TP_REFS) {
+		let x = babble(sr, sec, nch), y = x.map(c => c.map(v => Math.max(-0.5, Math.min(0.5, v * 8))))
+		for (let [what, d, want] of [['babble', x, tp], ['clipped', y, tpClip]]) {
+			let v = truepeak(d, { fs: sr })
+			ok(Math.abs(v - want) <= 0.01, `${sr} Hz ${what}: ${v.toFixed(4)} against ${want.toFixed(4)} dBTP`)
+		}
+	}
+})
+
+test('BS.1770-4 Table 3: 5.1 surrounds weighted 1.41, LFE excluded, by default', () => {
 	// L/R −28, C −24, Ls/Rs −30 sums to −23 LUFS only when Ls/Rs carry 1.41.
 	// Weighting all six at 1.0 gives −23.39 instead.
 	let lfe = new Float32Array(20 * fs)
@@ -73,6 +164,17 @@ test('BS.1770-4 Table 1 — 5.1 surrounds weighted 1.41, LFE excluded, by defaul
 	// Σ 10^(L/10)/2 over all six = (2·10^−2.8 + 10^−2.4 + 10^−0.6 + 2·10^−3)/2 = 0.13017
 	// → 10·log10 = −8.86, i.e. the LFE alone swamps the reading by 14 LU
 	almost(lufs(surround, { fs, weights: [1, 1, 1, 1, 1, 1] }), -8.855, 0.1, 'caller-supplied weights win')
+})
+
+// BS.1770-4 Table 4 (and Table 5, configuration I): sides within 60-120° weigh 1.41, backs past 120° 1.0; LFE out.
+// 7.1 counted every channel at 1.0, the LFE included.
+test('BS.1770-4 Table 4: 7.1 sides weighted 1.41, backs 1.0, LFE excluded, by default', () => {
+	let z = new Float32Array(5 * fs), tone = sine997(-23, 5), at = c => Array.from({ length: 8 }, (_, k) => k === c ? tone : z)
+	let front = lufs(at(0), { fs })
+	almost(lufs(at(6), { fs }) - front, 10 * Math.log10(1.41), 0.001, 'side left (Ls) +1.49 dB')
+	almost(lufs(at(4), { fs }) - front, 0, 0.001, 'back left (Lb) as a front channel')
+	is(lufs(at(3), { fs }), null, 'LFE alone: nothing measured')
+	is(lra(at(3), { fs }), null, 'LRA leaves the LFE out too')
 })
 
 test('lufs leaves the caller’s channels untouched (K-weighting never writes back to the input)', () => {
@@ -93,13 +195,24 @@ test('truepeak — inter-sample peak: fs/4 sine at 45° phase reads ~0 dBTP whil
 	almost(truepeak(sine997(-6, 2), { fs }), -6, 0.1, 'plain sine reads its level')
 })
 
-// The polyphase kernels read what upsampling with @audio/resample-sinc reads (its 32-tap Lanczos kernel, taps outside
-// the signal dropped and the rest renormalized); the resampler stores Float32, so they agree to float precision.
-test('truepeak — polyphase reads the same peak as upsampling with @audio/resample-sinc, ends and short signals included', () => {
-	let reference = (ch, n) => {
-		let peak = 0
-		for (let v of ch) peak = Math.max(peak, Math.abs(v))
-		for (let v of resample(ch, { from: fs, to: fs * n })) peak = Math.max(peak, Math.abs(v))
+// Every point read in full through the same kernel (a sinc under a Kaiser window, β 8, 48 samples each side), silence
+// outside the signal, and the parabola at each local maximum after the first sample: what the polyphase reads with its
+// skips must equal, ends and short signals too
+test('truepeak: the polyphase with its skips reads what every point read in full reads, ends and short signals included', () => {
+	let sinc = x => x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x)
+	let i0 = z => { let s = 1, t = 1; for (let k = 1; k < 60; k++) s += t *= (z / 2 / k) ** 2; return s }
+	let kernel = x => sinc(x) * i0(8 * Math.sqrt(1 - (x / 48) ** 2)) / i0(8)
+	let full = (ch, n) => {
+		let K = []
+		for (let p = 1; p < n; p++) { let h = [], s = 0; for (let j = 0; j < 96; j++) { let v = kernel(j - 47 - p / n); h.push(v); s += v } K.push(h.map(v => v / s)) }
+		let pts = []
+		for (let b = 0; b < ch.length; b++) { pts.push(Math.abs(ch[b])); for (let h of K) { let y = 0; for (let j = 0; j < 96; j++) { let i = b - 47 + j; if (i >= 0 && i < ch.length) y += h[j] * ch[i] } pts.push(Math.abs(y)) } }
+		pts.push(0)
+		let peak = Math.max(0, ...pts)
+		for (let k = 1; k < pts.length - 1; k++) {
+			let [l, m, r] = [pts[k - 1], pts[k], pts[k + 1]], c = 2 * m - l - r
+			if (m >= l && m >= r && c > 0) peak = Math.max(peak, m + (l - r) ** 2 / (8 * c))
+		}
 		return peak > 0 ? 20 * Math.log10(peak) : -Infinity
 	}
 	let seed = 1, random = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - .5
@@ -109,19 +222,22 @@ test('truepeak — polyphase reads the same peak as upsampling with @audio/resam
 	// a last block of 5 samples (64 · 3 + 5): the block before it holds reads that reach past the end too
 	let tail = noise(197); tail.fill(0, 0, 150); tail[185] = .9; tail[186] = -.9; tail[195] = .3; tail[196] = -.3
 	let signals = { noise: noise(3000), 'click at the start': click(200, 0), 'click at the end': click(200, 198), 'fs/4 at 45°': fs4, 'shorter than the kernel': noise(20), 'one sample': noise(1), 'a short last block': tail }
-	for (let [name, d] of Object.entries(signals)) for (let n of [2, 2.5, 3, 4, 8])
-		almost(truepeak(d, { fs, oversample: n }), reference(d, n), 1e-5, `${name}, ${n}×`)
+	for (let [name, d] of Object.entries(signals)) for (let n of [2, 3, 4, 8])
+		almost(truepeak(d, { fs, oversample: n }), full(d, n), 1e-9, `${name}, ${n}×`)
+	is(truepeak(signals.noise, { fs, oversample: 2.5 }), truepeak(signals.noise, { fs, oversample: 3 }), 'a fraction rounds up')
 	is(truepeak(new Float32Array(0), { fs }), -Infinity, 'no samples: silence')
 	is(truepeak(new Float32Array(100), { fs }), -Infinity, 'zeros: silence')
 })
 
 // A steady full-scale tone is the slowest case: every block nears the peak. Upsampling through the resampler took
-// about as long as the audio (1× realtime); the polyphase reads with their bounds take a small part of it.
+// about as long as the audio (1× realtime); the polyphase reads with their bounds take a small part of it (1.9 s of CPU
+// for this minute with the 96-tap kernel and the parabola, 0.6 s with the 32-tap points alone). CPU time, not wall
+// time: a loaded machine stretches the one, not the other.
 test('truepeak — a minute of steady stereo tone, the slowest case, reads in well under a minute', () => {
-	let ch = sine997(-3, 60), t = performance.now()
+	let ch = sine997(-3, 60), t = process.cpuUsage()
 	almost(truepeak([ch, Float32Array.from(ch)], { fs }), -3, 0.1)
-	let ms = performance.now() - t
-	ok(ms < 6000, `${ms.toFixed(0)} ms for 60 s`)
+	let { user, system } = process.cpuUsage(t), ms = (user + system) / 1000
+	ok(ms < 6000, `${ms.toFixed(0)} ms of CPU for 60 s`)
 })
 
 test('lra — EBU 3342: −20/−30 LUFS alternation → 10 LU; steady tone → ~0 LU', () => {

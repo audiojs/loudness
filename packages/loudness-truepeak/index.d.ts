@@ -2,7 +2,7 @@
 export interface TruePeakOptions {
   /** sample rate, Hz, default 48000 */
   fs?: number
-  /** oversampling factor, default 4 */
+  /** points a sample, default 4 (a fraction rounds up) */
   oversample?: number
 }
 

@@ -9,9 +9,10 @@ import { state, step } from '@audio/biquad'
 const OFFSET = -0.691, ABS_GATE = -70, REL_GATE = -10
 const GATE_WINDOW = 0.4, GATE_HOP = 0.1
 
-// BS.1770-4 Table 1 weights per channel count, assuming the SMPTE/WAV/Web Audio
+// BS.1770-4 Table 3 weights per channel count, assuming the SMPTE/WAV/Web Audio
 // ordering these layouts overwhelmingly arrive in. Surrounds count 1.41; LFE is
-// excluded from the measurement. Counts not listed fall back to 1.0 per channel
+// excluded from the measurement; 7.1 per Table 4: sides (60° ≤ |θ| ≤ 120°) 1.41,
+// backs (|θ| > 120°) 1.0. Counts not listed fall back to 1.0 per channel
 // — pass `weights` explicitly for layouts in a different order.
 export const LAYOUTS = Object.freeze({
 	1: Object.freeze([1]), // mono
@@ -19,11 +20,12 @@ export const LAYOUTS = Object.freeze({
 	4: Object.freeze([1, 1, 1.41, 1.41]), // L R Ls Rs
 	5: Object.freeze([1, 1, 1, 1.41, 1.41]), // L R C Ls Rs
 	6: Object.freeze([1, 1, 1, 0, 1.41, 1.41]), // L R C LFE Ls Rs
+	8: Object.freeze([1, 1, 1, 0, 1, 1, 1.41, 1.41]), // L R C LFE Lb Rb Ls Rs
 })
 
 /**
  * @param {Float32Array|Float32Array[]} channels — mono buffer or array of channel buffers
- * @param {object} opts — { fs, weights } — weights default to BS.1770-4 Table 1
+ * @param {object} opts — { fs, weights } — weights default to BS.1770-4 Table 3
  *   for known channel counts (see LAYOUTS), 1.0 per channel otherwise
  * @returns {number|null} integrated LUFS, or null for silence / all-gated input
  */

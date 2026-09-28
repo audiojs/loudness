@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-lufs",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Integrated loudness (LUFS) — ITU-R BS.1770-4 K-weighted gated measurement, EBU Tech 3341-verified",
   "type": "module",
   "sideEffects": false,

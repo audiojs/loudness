@@ -23,6 +23,6 @@ Each atom ships standalone:
 | [`@audio/loudness-contrast`](https://www.npmjs.com/package/@audio/loudness-contrast) | Speech contrast — foreground/background RMS difference, WCAG 2.0 SC 1.4.7 |
 | [`@audio/loudness-sounds`](https://www.npmjs.com/package/@audio/loudness-sounds) | Sound labeling — level-threshold region detection (Audacity Label Sounds) |
 
-Multichannel weights default to BS.1770-4 Table 1 by channel count (SMPTE/WAV/Web Audio order, LFE excluded). K-weighting lives in [`@audio/weighting-k`](https://www.npmjs.com/package/@audio/weighting-k) — exact BS.1770-4 at any sample rate.
+Multichannel weights default to BS.1770-4 Table 3 by channel count (SMPTE/WAV/Web Audio order, LFE excluded). K-weighting lives in [`@audio/weighting-k`](https://www.npmjs.com/package/@audio/weighting-k) — exact BS.1770-4 at any sample rate.
 
 Bare npm `loudness` is an unrelated package — hence the scope.

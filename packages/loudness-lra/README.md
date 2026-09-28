@@ -19,7 +19,7 @@ let range = lra(channels, { fs: 48000 })   // channels: Float32Array (mono) or F
 | Param | Default | |
 |---|---|---|
 | `fs` | `48000` | Sample rate, Hz |
-| `weights` | BS.1770-4 Table 1 | Per-channel gain array. Defaults by channel count assuming SMPTE/WAV/Web Audio order: 1/2ch all `1.0`, 4ch `[1,1,1.41,1.41]`, 5ch `[1,1,1,1.41,1.41]`, 6ch `[1,1,1,0,1.41,1.41]` (LFE excluded). Other counts default to `1.0` per channel — pass explicitly for layouts in a different order |
+| `weights` | BS.1770-4 Table 3 | Per-channel gain array. Defaults by channel count assuming SMPTE/WAV/Web Audio order: 1/2ch all `1.0`, 4ch `[1,1,1.41,1.41]`, 5ch `[1,1,1,1.41,1.41]`, 6ch `[1,1,1,0,1.41,1.41]` (LFE excluded), 8ch `[1,1,1,0,1,1,1.41,1.41]` (7.1, Table 4). Other counts default to `1.0` per channel — pass explicitly for layouts in a different order |
 
 Returns a `number` (LRA in LU), `0` if fewer than 2 blocks survive gating, or `null` for silence / input shorter than the 3 s short-term window.
 
