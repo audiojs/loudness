@@ -230,9 +230,9 @@ test('truepeak: the polyphase with its skips reads what every point read in full
 })
 
 // A steady full-scale tone is the slowest case: every block nears the peak. Upsampling through the resampler took
-// about as long as the audio (1× realtime); the polyphase reads with their bounds take a small part of it (1.9 s of CPU
-// for this minute with the 96-tap kernel and the parabola, 0.6 s with the 32-tap points alone). CPU time, not wall
-// time: a loaded machine stretches the one, not the other.
+// about as long as the audio (1× realtime); the polyphase reads with their bounds take a small part of it (0.4 s of CPU
+// for this minute, the parabolas bounded and the points read folded; 2.3 s bounding the points by the kernel's absolute
+// sum). CPU time, not wall time: a loaded machine stretches the one, not the other.
 test('truepeak — a minute of steady stereo tone, the slowest case, reads in well under a minute', () => {
 	let ch = sine997(-3, 60), t = process.cpuUsage()
 	almost(truepeak([ch, Float32Array.from(ch)], { fs }), -3, 0.1)

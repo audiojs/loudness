@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness-truepeak",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "True peak (dBTP) — 4× sinc-oversampled inter-sample peak (BS.1770-5 Annex 2 methodology)",
   "type": "module",
   "sideEffects": false,
