@@ -41,9 +41,9 @@
   "scripts": {
     "test": "node test.js",
     "test:all": "npm test --workspaces --if-present && npm test",
-    "publish:all": "npm publish --workspaces && npm publish",
+    "publish:all": "node ../compile/tools/tested.js && npm publish --workspaces && npm publish",
     "members": "node scripts/members.js",
-    "prepublishOnly": "node scripts/members.js --check"
+    "prepublishOnly": "node ../compile/tools/tested.js && node scripts/members.js --check"
   },
   "dependencies": {
     "@audio/loudness-contrast": "^1.0.4",
