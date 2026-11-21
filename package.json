@@ -1,6 +1,6 @@
 {
   "name": "@audio/loudness",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "sideEffects": false,
   "description": "Loudness metering — umbrella for @audio/loudness-* atoms (BS.1770-4 LUFS, true peak, LRA, ReplayGain, DR, speech contrast, sound labeling)",
@@ -27,23 +27,23 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
-    "./package.json": "./package.json",
-    "./*": {
-      "types": "./members/*.d.ts",
-      "default": "./members/*.js"
-    }
+    "./audio": {
+      "types": "./audio.d.ts",
+      "default": "./audio.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "index.js",
     "index.d.ts",
-    "members/"
+    "audio.js",
+    "audio.d.ts"
   ],
   "scripts": {
     "test": "node test.js",
     "test:all": "npm test --workspaces --if-present && npm test",
     "publish:all": "node ../compile/tools/tested.js && npm publish --workspaces && npm publish",
-    "members": "node scripts/members.js",
-    "prepublishOnly": "node ../compile/tools/tested.js && node scripts/members.js --check"
+    "prepublishOnly": "node ../compile/tools/tested.js"
   },
   "dependencies": {
     "@audio/loudness-contrast": "^1.0.4",
