@@ -26,7 +26,7 @@ Accepts `Float32Array` (mono) or `Float32Array[]` (multichannel — the maximum 
 
 **Use when:** checking a master against a dBTP ceiling (e.g. −1 dBTP delivery specs) before lossy encoding, where inter-sample overs would otherwise clip after decode.
 
-Per ITU-R BS.1770-5 Annex 2; tested against EBU Tech 3341 cases 15-23 and a 32× band-limited reference; libebur128 1.2.6 reads the same noise 0.08-0.84 dB lower.
+Per ITU-R BS.1770-5 Annex 2; tested against EBU Tech 3341 cases 15-23 and a 32× band-limited reference; libebur128 1.2.6 reads the same speech-like noise 0.04-1.17 dB lower, clipped 0.15-2.29 dB lower.
 
 ---
 

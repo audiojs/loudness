@@ -25,7 +25,7 @@ Returns a `number` (LRA in LU), `0` if fewer than 2 blocks survive gating, or `n
 
 **Use when:** measuring program dynamics for broadcast delivery specs (EBU R128 / ATSC A/85) that cap LRA alongside integrated loudness.
 
-Per ITU-R BS.1770-4 (K-weighting, gating) and EBU Tech 3342 (short-term window, percentile range); differential-tested against libebur128 / ffmpeg `ebur128`.
+Per ITU-R BS.1770-4 (K-weighting, gating) and EBU Tech 3342 (short-term window, percentile range); equal to 1e-9 LU to Tech 3342's own function (§5) over libebur128 1.2.6's short-term loudness read each 100 ms, on speech-like takes at 8 to 96 kHz. The windows lie inside the signal: no silence is appended after it (§5 suggests 1.5 s of it for files).
 
 ---
 

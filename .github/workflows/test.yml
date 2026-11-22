@@ -28,3 +28,28 @@ jobs:
 
       - name: Run tests
         run: npm run test:all
+
+  # The values test.js holds lufs, lra and truepeak to (test/references.json), made again from the references
+  # themselves: libebur128 1.2.6 through pyebur128 from PyPI, and the waveform read 32 points a sample by scipy. A
+  # committed number that its reference does not give fails here.
+  references:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the references
+        run: pip install pyebur128==0.1.1 numpy==2.5.3 scipy==1.18.1
+
+      - name: Loudness, loudness range and true peak, from libebur128 and the 32× waveform
+        run: |
+          node test/signals.js "$RUNNER_TEMP/signals"
+          python test/references.py "$RUNNER_TEMP/signals" > "$RUNNER_TEMP/references.json"
+          node test/same.js test/references.json "$RUNNER_TEMP/references.json"

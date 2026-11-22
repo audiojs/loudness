@@ -1,5 +1,7 @@
 import test, { almost, ok, is } from 'tst'
+import { readFileSync } from 'node:fs'
 import { lufs, truepeak, lra, replaygain, dr, speechContrast, sounds } from './index.js'
+import { babble, clip, CASES } from './test/signals.js'
 
 const fs = 48000
 
@@ -102,51 +104,39 @@ test('EBU Tech 3342 cases 1-4: loudness range within ±1 LU', () => {
 })
 
 // ── Against reference meters, on speech-like bursts ─────────────────────────────
-/** Deterministic speech-like signal: LCG noise band-shaped (one-pole 3 kHz low-pass, 150 Hz high-pass) in 4 Hz syllables,
- *  1-4 s phrases at random levels ending in a 0.4 s pause; sample peak −6 dBFS, channel c at 0.8^c. */
-function babble (sr, seconds, nch = 1, seed = 7) {
-	let n = Math.round(seconds * sr), x = new Float32Array(n), lp = 0, hp = 0, prev = 0, phrase = 0, level = 0.3, peak = 0
-	let rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-	let a = Math.exp(-2 * Math.PI * 3000 / sr), b = Math.exp(-2 * Math.PI * 150 / sr)
-	for (let i = 0; i < n; i++) {
-		let t = i / sr
-		if (t >= phrase) { phrase = t + 1 + 3 * rnd(); level = 0.02 + 0.5 * rnd() ** 2 }
-		let env = phrase - t < 0.4 ? 0.003 : level * Math.sin(Math.PI * ((t * 4) % 1)) ** 2
-		lp = (1 - a) * (rnd() * 2 - 1) + a * lp
-		hp = b * (hp + lp - prev); prev = lp
-		x[i] = env * hp
-	}
-	for (let v of x) peak = Math.max(peak, Math.abs(v))
-	return Array.from({ length: nch }, (_, c) => x.map(v => v * 0.5 / peak * 0.8 ** c))
-}
-// [rate, seconds, channels, libebur128 1.2.6 integrated loudness (pyebur128 0.1.1, same float32 samples)]
-const REFS = [
-	[44100, 10, 2, -19.364270003173353],
-	[8000, 20, 1, -20.083349135086866],
-	[96000, 5, 1, -22.32271642233393],
-	[48000, 30, 2, -21.620665120510523],
-]
-test('integrated loudness equals libebur128 to 1e-4 LU (8-96 kHz, mono and stereo)', () => {
-	for (let [sr, sec, nch, I] of REFS) almost(lufs(babble(sr, sec, nch), { fs: sr }), I, 1e-4, `${sr} Hz, ${nch} ch`)
+// test/references.json holds what the references read of each babble of test/signals.js and of it clipped 18 dB
+// (test/references.py makes it and says what each number is); CI makes it again and fails where a committed number is
+// not the one its reference gives
+const REFS = JSON.parse(readFileSync(new URL('test/references.json', import.meta.url), 'utf8')).cases
+let reads
+/** [name, seconds, ours, the references'] of every babble and its clipped twin, measured once */
+const read = () => reads ??= CASES.flatMap(([sr, sec, nch, seed]) => {
+	let x = babble(sr, sec, nch, seed), name = `${sr}-${sec}-${nch}-${seed}`
+	return [[name, x], [name + '.clip', clip(x)]].map(([name, d]) => [name, sec, { lufs: lufs(d, { fs: sr }), lra: lra(d, { fs: sr }), truepeak: truepeak(d, { fs: sr }) }, REFS[name]])
 })
-// [rate, seconds, channels, band-limited true peak of the babble, and of it clipped 18 dB (×8 into ±0.5): the samples
-// read 32× oversampled through a Kaiser-windowed sinc, β 14, 128 taps a phase (scipy firwin), silence outside]
-const TP_REFS = [
-	[8000, 20, 1, -3.2608089267577913, 1.6761903084219987],
-	[16000, 10, 1, -3.905804387484591, 1.4573661223182879],
-	[44100, 10, 2, -5.49243029356415, 0.8355808847840162],
-	[48000, 10, 2, -5.765709368091915, 0.8598145521764129],
-]
-// Clipping, like limiting, fills the band up to Nyquist and peaks between the points: the 32-tap Lanczos points of 1.1
-// read the clipped babble 0.36-0.40 dB low, the 8 kHz babble 0.25 dB low; libebur128 reads the babble 0.08-0.84 dB low
-test('true peak within 0.01 dB of the band-limited waveform at 8, 16, 44.1 and 48 kHz, clipped too', () => {
-	for (let [sr, sec, nch, tp, tpClip] of TP_REFS) {
-		let x = babble(sr, sec, nch), y = x.map(c => c.map(v => Math.max(-0.5, Math.min(0.5, v * 8))))
-		for (let [what, d, want] of [['babble', x, tp], ['clipped', y, tpClip]]) {
-			let v = truepeak(d, { fs: sr })
-			ok(Math.abs(v - want) <= 0.01, `${sr} Hz ${what}: ${v.toFixed(4)} against ${want.toFixed(4)} dBTP`)
-		}
-	}
+
+test('integrated loudness equals libebur128 1.2.6 to 1e-9 LU (8-96 kHz, mono and stereo, clipped too)', () => {
+	for (let [name, , own, ref] of read()) almost(own.lufs, ref.lufs, 1e-9, name)
+})
+
+// Tech 3342 (2023) §3.1 requires the 3 s windows at least 2.9 s overlapped; §5 gives the range of their loudness levels
+// as a MATLAB function. The reference is that function over libebur128's short-term loudness read each 100 ms.
+test('loudness range equals EBU Tech 3342 §5 over libebur128\'s short-term loudness to 1e-9 LU', () => {
+	for (let [name, , own, ref] of read()) almost(own.lra, ref.lra, 1e-9, name)
+})
+
+// libebur128's own range moves its window a second at a time (the 2 s overlap of Tech 3342 before 2023): on these
+// takes it reads up to 0.46 LU from the 100 ms one at 30 s and longer, up to 1.95 LU on the 5 and 10 s ones
+test('loudness range within 1 LU, Tech 3342\'s tolerance, of libebur128\'s own on takes of 30 s and longer', () => {
+	for (let [name, sec, own, ref] of read()) if (sec >= 30) almost(own.lra, ref.lraSecond, 1, name)
+})
+
+// The waveform read 32 points a sample through a Kaiser-windowed sinc, β 14, 128 samples long (scipy firwin, 4097
+// taps), silence outside. Clipping, like limiting, fills the band up to Nyquist and peaks between the points: the
+// 32-tap Lanczos points of 1.1 read the clipped babble 0.36-0.40 dB low, the 8 kHz babble 0.25 dB low; libebur128
+// (truepeakLib) reads these babbles 0.04-1.17 dB low, clipped 0.15-2.29 dB low
+test('true peak within 0.01 dB of the band-limited waveform at 8 to 96 kHz, clipped too', () => {
+	for (let [name, , own, ref] of read()) ok(Math.abs(own.truepeak - ref.truepeak) <= 0.01, `${name}: ${own.truepeak.toFixed(4)} against ${ref.truepeak.toFixed(4)} dBTP`)
 })
 
 test('BS.1770-4 Table 3: 5.1 surrounds weighted 1.41, LFE excluded, by default', () => {
